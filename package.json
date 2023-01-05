@@ -1,43 +1,35 @@
 {
-  "name": "typescript-action",
-  "version": "0.0.0",
+  "name": "artifact-download",
+  "version": "1.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Artifact download action",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write '**/*.ts'",
-    "format-check": "prettier --check '**/*.ts'",
-    "lint": "eslint src/**/*.ts",
     "package": "ncc build --source-map --license licenses.txt",
-    "test": "jest",
-    "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
+    "all": "npm run build npm run package"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/NoorDigitalAgency/artifact-download.git"
   },
-  "keywords": [
-    "actions",
-    "node",
-    "setup"
-  ],
-  "author": "",
+  "author": "Rojan Gh.",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.10.0"
+    "@actions/core": "^1.10.0",
+    "@actions/glob": "^0.3.0",
+    "@actions/io": "^1.1.2",
+    "archiver": "^5.3.1",
+    "axios": "^1.2.2",
+    "backblaze-b2": "^1.7.0",
+    "tar": "^6.1.13"
   },
   "devDependencies": {
+    "@types/archiver": "^5.3.1",
+    "@types/backblaze-b2": "^1.5.2",
     "@types/node": "^18.11.0",
-    "@typescript-eslint/parser": "^4.33.0",
+    "@types/tar": "^6.1.3",
     "@vercel/ncc": "^0.31.1",
-    "eslint": "^7.32.0",
-    "eslint-plugin-github": "^4.3.2",
-    "eslint-plugin-jest": "^25.3.2",
-    "jest": "^27.2.5",
-    "js-yaml": "^4.1.0",
-    "prettier": "2.5.1",
-    "ts-jest": "^27.1.2",
     "typescript": "^4.4.4"
   }
 }
