@@ -91,6 +91,8 @@ async function run(): Promise<void> {
 
     core.info(`End of extraction`);
 
+    core.setOutput('download-path', extractionPath);
+
   } catch (error) {
 
     if (error instanceof Error) core.setFailed(error.message);

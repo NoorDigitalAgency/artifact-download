@@ -3,11 +3,12 @@ description: 'Artifact Download using Backblaze as the backend'
 author: 'Rojan Gh.'
 inputs:
   name:
-    required: true
+    required: false
     description: 'Artifact name'
+    default: 'artifact'
   path:
     required: false
-    description: 'Path to extract the artifact content at'
+    description: 'Path of artifact download'
     default: './'
   key:
     required: true
@@ -19,6 +20,9 @@ inputs:
     required: false
     description: 'Backblaze bucket name'
     default: 'github-artifacts'
+outputs:
+  download-path:
+    description: 'Path of artifact download'
 runs:
   using: 'node16'
   main: 'dist/index.js'
