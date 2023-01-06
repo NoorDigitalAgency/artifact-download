@@ -45,6 +45,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const backblaze_b2_1 = __importDefault(__nccwpck_require__(8506));
 const axios_1 = __importDefault(__nccwpck_require__(1441));
+const axios_retry_1 = __importDefault(__nccwpck_require__(9179));
 const fs = __importStar(__nccwpck_require__(5747));
 const path_1 = __nccwpck_require__(5622);
 const tar_1 = __importDefault(__nccwpck_require__(4674));
@@ -62,7 +63,8 @@ function run() {
             const artifactFileName = `${name}-${runId}`;
             const artifactFile = (0, path_1.resolve)(`${tmp}/${artifactFileName}-download`);
             core.info(`Start of download`);
-            const b2 = new backblaze_b2_1.default({ axios: axios_1.default, retry: { retries: 5 }, applicationKey: key, applicationKeyId: id });
+            (0, axios_retry_1.default)(axios_1.default, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => { var _a; return ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 503; } });
+            const b2 = new backblaze_b2_1.default({ axios: axios_1.default, applicationKey: key, applicationKeyId: id });
             yield b2.authorize();
             const stream = (yield b2.downloadFileByName({ bucketName: bucket, fileName: artifactFileName, responseType: 'stream' })).data;
             const writer = fs.createWriteStream(artifactFile);

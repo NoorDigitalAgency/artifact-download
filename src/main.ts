@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import B2 from 'backblaze-b2';
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import * as fs from 'fs';
 import { resolve } from 'path';
 import tar from 'tar';
@@ -29,7 +30,9 @@ async function run(): Promise<void> {
 
     core.info(`Start of download`);
 
-    const b2 = new B2({axios: axios, retry: {retries: 5}, applicationKey: key, applicationKeyId: id});
+    axiosRetry(axios, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => error.response?.status === 503 });
+
+    const b2 = new B2({axios: axios, applicationKey: key, applicationKeyId: id});
 
     await b2.authorize();
 
