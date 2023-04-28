@@ -156,6 +156,8 @@ async function run(): Promise<void> {
 
     core.info(`End of Merging`);
 
+    const hashingPromiser = promiser<void>();
+
     const fileStream = fs.createReadStream(artifactFile);
 
     const hash = crypto.createHash('sha1');
@@ -165,7 +167,11 @@ async function run(): Promise<void> {
       hash.end();
 
       core.info(`Artifact file: size=${fs.statSync(artifactFile).size / (1024 * 1024)}MB, hash=${hash.read()}`);
+
+      hashingPromiser.resolve();
     });
+
+    await hashingPromiser.promise;
 
     core.info(`Start of extraction`);
 

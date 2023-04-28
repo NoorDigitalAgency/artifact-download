@@ -171,12 +171,15 @@ function run() {
                 }
             });
             core.info(`End of Merging`);
+            const hashingPromiser = (0, functions_1.promiser)();
             const fileStream = fs.createReadStream(artifactFile);
             const hash = crypto_1.default.createHash('sha1');
             fileStream.once('end', () => {
                 hash.end();
                 core.info(`Artifact file: size=${fs.statSync(artifactFile).size / (1024 * 1024)}MB, hash=${hash.read()}`);
+                hashingPromiser.resolve();
             });
+            yield hashingPromiser.promise;
             core.info(`Start of extraction`);
             const extractionPath = (0, path_1.resolve)(path);
             if (!fs.existsSync(extractionPath))
