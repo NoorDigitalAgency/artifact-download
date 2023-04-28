@@ -179,6 +179,7 @@ function run() {
             core.setOutput('download-path', extractionPath);
         }
         catch (error) {
+            console.log(error);
             if (error instanceof Error)
                 core.setFailed(error.message);
         }

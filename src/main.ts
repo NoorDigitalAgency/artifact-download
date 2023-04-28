@@ -167,6 +167,8 @@ async function run(): Promise<void> {
 
   } catch (error) {
 
+    console.log(error);
+
     if (error instanceof Error) core.setFailed(error.message);
   }
 }
