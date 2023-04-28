@@ -104,8 +104,9 @@ function run() {
             core.info(`Start of download`);
             (0, axios_retry_1.default)(axios_1.default, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => { var _a; return ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 503; } });
             const b2 = new backblaze_b2_1.default({ axios: axios_1.default, applicationKey: key, applicationKeyId: id });
-            yield b2.authorize();
-            const fileInfo = (yield b2.listFileNames({ bucketId: bucket, maxFileCount: 100, startFileName: artifactFileName, prefix: '', delimiter: '' })).data.files.pop();
+            const data = (yield b2.authorize()).data;
+            console.log(data);
+            const fileInfo = (yield b2.listFileNames({ bucketId: bucket, maxFileCount: 1, startFileName: artifactFileName, prefix: '', delimiter: '' })).data.files.pop();
             core.debug(`File info: ${JSON.stringify(fileInfo)}`);
             const fileSize = fileInfo.contentLength;
             const chunkCount = Math.ceil(fileSize / chunkSize);
