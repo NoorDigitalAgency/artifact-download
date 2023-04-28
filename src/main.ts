@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import { resolve } from 'path';
 import tar from 'tar';
 import {delay, promiser} from "./functions";
+import crypto from "crypto";
 
 async function run(): Promise<void> {
 
@@ -154,6 +155,14 @@ async function run(): Promise<void> {
     });
 
     core.info(`End of Merging`);
+
+    const fileBuffer = fs.readFileSync(artifactFile);
+
+    const hashSum = crypto.createHash('sha1');
+
+    hashSum.update(fileBuffer);
+
+    core.info(`Artifact file size: ${fs.statSync(artifactFile).size / (1024*1024)}MB and hash: ${hashSum.digest('hex')}`);
 
     core.info(`Start of extraction`);
 
