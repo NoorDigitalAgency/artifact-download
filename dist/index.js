@@ -1,6 +1,45 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 358:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.decompressTarGz = void 0;
+const fs_1 = __importDefault(__nccwpck_require__(5747));
+const zlib_1 = __importDefault(__nccwpck_require__(8761));
+const tar_1 = __importDefault(__nccwpck_require__(4674));
+function decompressTarGz(filePath, targetPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const readStream = fs_1.default.createReadStream(filePath);
+        const unzipStream = zlib_1.default.createGunzip();
+        const untarStream = tar_1.default.extract({ cwd: targetPath, strip: 0 });
+        readStream.pipe(unzipStream).pipe(untarStream);
+        yield new Promise((resolve, reject) => {
+            untarStream.on("error", reject);
+            untarStream.on("end", resolve);
+        });
+    });
+}
+exports.decompressTarGz = decompressTarGz;
+//# sourceMappingURL=functions.js.map
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -48,7 +87,7 @@ const axios_1 = __importDefault(__nccwpck_require__(1441));
 const axios_retry_1 = __importDefault(__nccwpck_require__(9179));
 const fs = __importStar(__nccwpck_require__(5747));
 const path_1 = __nccwpck_require__(5622);
-const tar_1 = __importDefault(__nccwpck_require__(4674));
+const functions_1 = __nccwpck_require__(358);
 function run() {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
@@ -88,15 +127,7 @@ function run() {
             core.info(`Extraction path ${extractionPath}`);
             if (!fs.existsSync(extractionPath))
                 fs.mkdirSync(extractionPath);
-            yield new Promise((resolve, reject) => {
-                fs.createReadStream(artifactFile)
-                    .on('error', reject)
-                    .on('end', resolve)
-                    .pipe(tar_1.default.extract({
-                    cwd: extractionPath,
-                    strip: 0
-                }));
-            });
+            yield (0, functions_1.decompressTarGz)(artifactFile, extractionPath);
             core.info(`End of extraction`);
             core.setOutput('download-path', extractionPath);
         }

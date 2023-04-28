@@ -4,7 +4,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as fs from 'fs';
 import { resolve } from 'path';
-import tar from 'tar';
+import { decompressTarGz } from "./functions";
 
 async function run(): Promise<void> {
 
@@ -75,21 +75,7 @@ async function run(): Promise<void> {
 
     if (!fs.existsSync(extractionPath)) fs.mkdirSync(extractionPath);
 
-    await new Promise((resolve, reject) => {
-
-      fs.createReadStream(artifactFile)
-
-          .on('error', reject)
-
-          .on('end', resolve)
-
-          .pipe(tar.extract({
-
-            cwd: extractionPath,
-
-            strip: 0
-          }));
-    });
+    await decompressTarGz(artifactFile, extractionPath);
 
     core.info(`End of extraction`);
 
