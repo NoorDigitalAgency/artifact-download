@@ -41,7 +41,7 @@ async function run(): Promise<void> {
 
     await b2.authorize();
 
-    const fileInfo = ((await b2.listFileNames({ bucketId: bucket, maxFileCount: 1, startFileName: null as unknown as string, prefix: artifactFileName, delimiter: null as unknown as string })).data as {files: {fileId: string, contentLength: number}[]}).files.pop()!;
+    const fileInfo = ((await b2.listFileNames({ bucketId: bucket, maxFileCount: 100, startFileName: artifactFileName, prefix: '', delimiter: '' })).data as {files: {fileId: string, contentLength: number}[]}).files.pop()!;
 
     core.debug(`File info: ${JSON.stringify(fileInfo)}`);
 
