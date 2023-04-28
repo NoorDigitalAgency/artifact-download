@@ -86,7 +86,6 @@ const fs = __importStar(__nccwpck_require__(5747));
 const path_1 = __nccwpck_require__(5622);
 const tar_1 = __importDefault(__nccwpck_require__(4674));
 const functions_1 = __nccwpck_require__(358);
-const crypto_1 = __importDefault(__nccwpck_require__(6417));
 function run() {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
@@ -171,15 +170,6 @@ function run() {
                 }
             });
             core.info(`End of Merging`);
-            const hashingPromiser = (0, functions_1.promiser)();
-            const fileStream = fs.createReadStream(artifactFile);
-            const hash = crypto_1.default.createHash('sha1');
-            fileStream.once('end', () => {
-                hash.end();
-                core.info(`Artifact file: size=${fs.statSync(artifactFile).size / (1024 * 1024)}MB, hash=${hash.read()}`);
-                hashingPromiser.resolve();
-            });
-            yield hashingPromiser.promise;
             core.info(`Start of extraction`);
             const extractionPath = (0, path_1.resolve)(path);
             if (!fs.existsSync(extractionPath))
