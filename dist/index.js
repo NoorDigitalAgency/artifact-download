@@ -117,10 +117,12 @@ function run() {
                 const startByte = i * chunkSize;
                 const endByte = Math.min((i + 1) * chunkSize, fileSize) - 1;
                 currentThreads++;
+                core.info(`Start of chunk ${i + 1}/${chunkCount}`);
                 b2.downloadFileById({ fileId: fileInfo.fileId, responseType: 'stream', axiosOverride: { headers: { Range: `bytes=${startByte}-${endByte}` } } }).then(value => {
                     const writer = fs.createWriteStream(`${artifactFile}-${i}`);
                     value.data.pipe(writer, { end: false });
-                    value.data.on('end', () => {
+                    value.data.once('end', () => {
+                        core.info(`End of chunk ${i + 1}/${chunkCount}`);
                         currentThreads--;
                         if (currentThreads === 0)
                             chunksPromiser.resolve();
@@ -130,15 +132,17 @@ function run() {
                     yield (0, functions_1.delay)(1000);
             }
             yield chunksPromiser.promise;
+            core.info(`End of download`);
+            core.info(`Starting to merge...`);
             yield new Promise((resolve, reject) => {
                 const outputStream = fs.createWriteStream(artifactFile);
                 let error = null;
-                outputStream.on('error', err => {
+                outputStream.once('error', err => {
                     error = err;
                     outputStream.close();
                     reject(err);
                 });
-                outputStream.on('close', () => {
+                outputStream.once('close', () => {
                     if (!error) {
                         resolve(true);
                     }
@@ -146,11 +150,13 @@ function run() {
                 try {
                     let chunksWrote = 0;
                     for (let i = 0; i < chunkCount; i++) {
+                        core.info(`Start of part ${i + 1}/${chunkCount}`);
                         const inputStream = fs.createReadStream(`${artifactFile}-${i}`);
                         inputStream.pipe(outputStream, { end: false });
-                        inputStream.on('end', () => {
+                        inputStream.once('end', () => {
                             fs.rmSync(`${artifactFile}-${i}`);
                             chunksWrote++;
+                            core.info(`End of part ${i + 1}/${chunkCount}`);
                             if (chunksWrote === chunkCount) {
                                 outputStream.end();
                             }
@@ -163,16 +169,15 @@ function run() {
                     reject(err);
                 }
             });
-            core.info(`End of download`);
-            core.info(fs.statSync(artifactFile).size.toString());
+            core.info(`End of Merging`);
             core.info(`Start of extraction`);
             const extractionPath = (0, path_1.resolve)(path);
             if (!fs.existsSync(extractionPath))
                 fs.mkdirSync(extractionPath);
             yield new Promise((resolve, reject) => {
                 fs.createReadStream(artifactFile)
-                    .on('error', reject)
-                    .on('end', resolve)
+                    .once('error', reject)
+                    .once('end', resolve)
                     .pipe(tar_1.default.extract({
                     cwd: extractionPath,
                     strip: 0

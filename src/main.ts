@@ -65,13 +65,17 @@ async function run(): Promise<void> {
 
       currentThreads++;
 
+      core.info(`Start of chunk ${i + 1}/${chunkCount}`);
+
       b2.downloadFileById({ fileId: fileInfo.fileId, responseType: 'stream', axiosOverride: {headers: {Range: `bytes=${startByte}-${endByte}`}} }).then(value => {
 
         const writer = fs.createWriteStream(`${artifactFile}-${i}`);
 
         value.data.pipe(writer, { end: false });
 
-        value.data.on('end', () => {
+        value.data.once('end', () => {
+
+          core.info(`End of chunk ${i + 1}/${chunkCount}`);
 
           currentThreads--;
 
@@ -85,13 +89,17 @@ async function run(): Promise<void> {
 
     await chunksPromiser.promise;
 
+    core.info(`End of download`);
+
+    core.info(`Starting to merge...`);
+
     await new Promise((resolve, reject) => {
 
       const outputStream = fs.createWriteStream(artifactFile);
 
       let error = null as unknown;
 
-      outputStream.on('error', err => {
+      outputStream.once('error', err => {
 
         error = err;
 
@@ -101,7 +109,7 @@ async function run(): Promise<void> {
 
       });
 
-      outputStream.on('close', () => {
+      outputStream.once('close', () => {
 
         if (!error) {
 
@@ -115,15 +123,19 @@ async function run(): Promise<void> {
 
         for (let i = 0; i < chunkCount; i++) {
 
+          core.info(`Start of part ${i + 1}/${chunkCount}`);
+
           const inputStream = fs.createReadStream(`${artifactFile}-${i}`);
 
           inputStream.pipe(outputStream, {end: false});
 
-          inputStream.on('end', () => {
+          inputStream.once('end', () => {
 
             fs.rmSync(`${artifactFile}-${i}`);
 
             chunksWrote++;
+
+            core.info(`End of part ${i + 1}/${chunkCount}`);
 
             if (chunksWrote === chunkCount) {
 
@@ -141,9 +153,7 @@ async function run(): Promise<void> {
       }
     });
 
-    core.info(`End of download`);
-
-    core.info(fs.statSync(artifactFile).size.toString());
+    core.info(`End of Merging`);
 
     core.info(`Start of extraction`);
 
@@ -155,9 +165,9 @@ async function run(): Promise<void> {
 
       fs.createReadStream(artifactFile)
 
-          .on('error', reject)
+          .once('error', reject)
 
-          .on('end', resolve)
+          .once('end', resolve)
 
           .pipe(tar.extract({
 
