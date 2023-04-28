@@ -35,7 +35,7 @@ async function run(): Promise<void> {
 
     core.info(`Start of download`);
 
-    axiosRetry(axios, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => error.response?.status === 503 });
+    axiosRetry(axios, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => (error.response?.status ?? 0) >= 500 });
 
     const b2 = new B2({axios: axios, applicationKey: key, applicationKeyId: id});
 
@@ -168,8 +168,6 @@ async function run(): Promise<void> {
     core.setOutput('download-path', extractionPath);
 
   } catch (error) {
-
-    console.log(error);
 
     if (error instanceof Error) core.setFailed(error.message);
   }

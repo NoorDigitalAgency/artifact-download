@@ -102,7 +102,7 @@ function run() {
             const artifactFileName = `${name}-${runId}`;
             const artifactFile = (0, path_1.resolve)(`${tmp}/${artifactFileName}-download`);
             core.info(`Start of download`);
-            (0, axios_retry_1.default)(axios_1.default, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => { var _a; return ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 503; } });
+            (0, axios_retry_1.default)(axios_1.default, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => { var _a, _b; return ((_b = (_a = error.response) === null || _a === void 0 ? void 0 : _a.status) !== null && _b !== void 0 ? _b : 0) >= 500; } });
             const b2 = new backblaze_b2_1.default({ axios: axios_1.default, applicationKey: key, applicationKeyId: id });
             yield b2.authorize();
             const bucketId = (yield b2.getBucket({ bucketName: bucket })).data.buckets.pop().bucketId;
@@ -180,7 +180,6 @@ function run() {
             core.setOutput('download-path', extractionPath);
         }
         catch (error) {
-            console.log(error);
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
