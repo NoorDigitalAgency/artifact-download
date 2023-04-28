@@ -41,7 +41,7 @@ async function run(): Promise<void> {
 
     await b2.authorize();
 
-    const bucketId = (await b2.getBucket({bucketName: bucket}));
+    const bucketId = (await b2.getBucket({bucketName: bucket})).data.buckets.pop().bucketId as string;
 
     console.log(bucketId);
 
