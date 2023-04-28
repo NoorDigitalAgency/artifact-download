@@ -23,12 +23,17 @@ exports.decompressTarGz = void 0;
 const fs_1 = __importDefault(__nccwpck_require__(5747));
 const zlib_1 = __importDefault(__nccwpck_require__(8761));
 const tar_1 = __importDefault(__nccwpck_require__(4674));
-function decompressTarGz(filePath, targetPath) {
+function decompressTarGz(filePath, targetPath, compressed) {
     return __awaiter(this, void 0, void 0, function* () {
         const readStream = fs_1.default.createReadStream(filePath);
-        const unzipStream = zlib_1.default.createGunzip();
         const untarStream = tar_1.default.extract({ cwd: targetPath, strip: 0 });
-        readStream.pipe(unzipStream).pipe(untarStream);
+        if (compressed) {
+            const unzipStream = zlib_1.default.createGunzip();
+            readStream.pipe(unzipStream).pipe(untarStream);
+        }
+        else {
+            readStream.pipe(untarStream);
+        }
         yield new Promise((resolve, reject) => {
             untarStream.on("error", reject);
             untarStream.on("end", resolve);
@@ -97,6 +102,7 @@ function run() {
             const key = core.getInput('key');
             const id = core.getInput('id');
             const bucket = core.getInput('bucket');
+            const compressed = core.getBooleanInput('compressed');
             const tmp = (_c = (_b = (_a = process.env['RUNNER_TEMP']) !== null && _a !== void 0 ? _a : process.env['TEMP']) !== null && _b !== void 0 ? _b : process.env['TMP']) !== null && _c !== void 0 ? _c : process.env['TMPDIR'];
             const runId = `${process.env['GITHUB_REPOSITORY'].replace('/', '-')}-${process.env['GITHUB_RUN_ID']}`;
             const artifactFileName = `${name}-${runId}`;
@@ -127,7 +133,7 @@ function run() {
             core.info(`Extraction path ${extractionPath}`);
             if (!fs.existsSync(extractionPath))
                 fs.mkdirSync(extractionPath);
-            yield (0, functions_1.decompressTarGz)(artifactFile, extractionPath);
+            yield (0, functions_1.decompressTarGz)(artifactFile, extractionPath, compressed);
             core.info(`End of extraction`);
             core.setOutput('download-path', extractionPath);
         }

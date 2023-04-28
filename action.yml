@@ -20,6 +20,10 @@ inputs:
     required: false
     description: 'Backblaze bucket name'
     default: 'github-artifacts'
+  compressed:
+    required: false
+    description: 'Whether to download compressed artifact'
+    default: 'false'
 outputs:
   download-path:
     description: 'Path of artifact download'

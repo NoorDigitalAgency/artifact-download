@@ -20,6 +20,8 @@ async function run(): Promise<void> {
 
     const bucket = core.getInput('bucket');
 
+    const compressed = core.getBooleanInput('compressed');
+
     const tmp = process.env['RUNNER_TEMP'] ?? process.env['TEMP'] ?? process.env['TMP'] ?? process.env['TMPDIR'];
 
     const runId = `${process.env['GITHUB_REPOSITORY']!.replace('/', '-')}-${process.env['GITHUB_RUN_ID']}`;
@@ -75,7 +77,7 @@ async function run(): Promise<void> {
 
     if (!fs.existsSync(extractionPath)) fs.mkdirSync(extractionPath);
 
-    await decompressTarGz(artifactFile, extractionPath);
+    await decompressTarGz(artifactFile, extractionPath, compressed);
 
     core.info(`End of extraction`);
 
