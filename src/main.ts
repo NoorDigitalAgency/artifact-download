@@ -111,6 +111,8 @@ async function run(): Promise<void> {
 
       try {
 
+        let chunksWrote = 0;
+
         for (let i = 0; i < chunkCount; i++) {
 
           const inputStream = fs.createReadStream(`${artifactFile}-${i}`);
@@ -121,7 +123,9 @@ async function run(): Promise<void> {
 
             fs.rmSync(`${artifactFile}-${i}`);
 
-            if (i === chunkCount - 1) {
+            chunksWrote++;
+
+            if (chunksWrote === chunkCount) {
 
               outputStream.end();
             }
@@ -138,6 +142,8 @@ async function run(): Promise<void> {
     });
 
     core.info(`End of download`);
+
+    core.info(fs.statSync(artifactFile).size.toString());
 
     core.info(`Start of extraction`);
 

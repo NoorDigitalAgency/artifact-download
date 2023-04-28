@@ -144,12 +144,14 @@ function run() {
                     }
                 });
                 try {
+                    let chunksWrote = 0;
                     for (let i = 0; i < chunkCount; i++) {
                         const inputStream = fs.createReadStream(`${artifactFile}-${i}`);
                         inputStream.pipe(outputStream, { end: false });
                         inputStream.on('end', () => {
                             fs.rmSync(`${artifactFile}-${i}`);
-                            if (i === chunkCount - 1) {
+                            chunksWrote++;
+                            if (chunksWrote === chunkCount) {
                                 outputStream.end();
                             }
                         });
@@ -162,6 +164,7 @@ function run() {
                 }
             });
             core.info(`End of download`);
+            core.info(fs.statSync(artifactFile).size.toString());
             core.info(`Start of extraction`);
             const extractionPath = (0, path_1.resolve)(path);
             if (!fs.existsSync(extractionPath))
