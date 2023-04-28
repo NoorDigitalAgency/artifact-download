@@ -71,6 +71,8 @@ async function run(): Promise<void> {
 
     const extractionPath = resolve(path);
 
+    core.info(`Extraction path ${extractionPath}`);
+
     if (!fs.existsSync(extractionPath)) fs.mkdirSync(extractionPath);
 
     await new Promise((resolve, reject) => {
