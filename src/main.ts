@@ -39,11 +39,11 @@ async function run(): Promise<void> {
 
     const b2 = new B2({axios: axios, applicationKey: key, applicationKeyId: id});
 
-    const data = (await b2.authorize()).data;
+    await b2.authorize();
 
-    console.log(data);
+    const bucketId = (await b2.getBucket({bucketName: bucket})).data.bucketId;
 
-    const fileInfo = ((await b2.listFileNames({ bucketId: bucket, maxFileCount: 1, startFileName: artifactFileName, prefix: '', delimiter: '' })).data as {files: {fileId: string, contentLength: number}[]}).files.pop()!;
+    const fileInfo = ((await b2.listFileNames({ bucketId, maxFileCount: 1, startFileName: artifactFileName, prefix: '', delimiter: '' })).data as {files: {fileId: string, contentLength: number}[]}).files.pop()!;
 
     core.debug(`File info: ${JSON.stringify(fileInfo)}`);
 
