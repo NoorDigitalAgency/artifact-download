@@ -156,13 +156,16 @@ async function run(): Promise<void> {
 
     core.info(`End of Merging`);
 
-    const fileBuffer = fs.readFileSync(artifactFile);
+    const fileStream = fs.createReadStream(artifactFile);
 
-    const hashSum = crypto.createHash('sha1');
+    const hash = crypto.createHash('sha1');
 
-    hashSum.update(fileBuffer);
+    fileStream.once('end' , () => {
 
-    core.info(`Artifact file size: ${fs.statSync(artifactFile).size / (1024*1024)}MB and hash: ${hashSum.digest('hex')}`);
+      hash.end();
+
+      core.info(`Artifact file: size=${fs.statSync(artifactFile).size / (1024 * 1024)}MB, hash=${hash.read()}`);
+    });
 
     core.info(`Start of extraction`);
 

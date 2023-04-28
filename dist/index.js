@@ -171,10 +171,12 @@ function run() {
                 }
             });
             core.info(`End of Merging`);
-            const fileBuffer = fs.readFileSync(artifactFile);
-            const hashSum = crypto_1.default.createHash('sha1');
-            hashSum.update(fileBuffer);
-            core.info(`Artifact file size: ${fs.statSync(artifactFile).size / (1024 * 1024)}MB and hash: ${hashSum.digest('hex')}`);
+            const fileStream = fs.createReadStream(artifactFile);
+            const hash = crypto_1.default.createHash('sha1');
+            fileStream.once('end', () => {
+                hash.end();
+                core.info(`Artifact file: size=${fs.statSync(artifactFile).size / (1024 * 1024)}MB, hash=${hash.read()}`);
+            });
             core.info(`Start of extraction`);
             const extractionPath = (0, path_1.resolve)(path);
             if (!fs.existsSync(extractionPath))
