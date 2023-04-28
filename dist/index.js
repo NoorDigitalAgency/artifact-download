@@ -172,6 +172,7 @@ function run() {
             core.info(`End of Merging`);
             core.info(`Start of extraction`);
             const extractionPath = (0, path_1.resolve)(path);
+            core.info(`Extraction path ${extractionPath}`);
             if (!fs.existsSync(extractionPath))
                 fs.mkdirSync(extractionPath);
             yield new Promise((resolve, reject) => {
