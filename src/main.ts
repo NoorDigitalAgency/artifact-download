@@ -5,6 +5,7 @@ import axiosRetry from 'axios-retry';
 import * as fs from 'fs';
 import { resolve } from 'path';
 import tar from 'tar';
+import {delay, promiser} from "./functions";
 
 async function run(): Promise<void> {
 
@@ -19,6 +20,10 @@ async function run(): Promise<void> {
     const id = core.getInput('id');
 
     const bucket = core.getInput('bucket');
+
+    const chunkSize = parseFloat(core.getInput('chunk-size')) * 1024 * 1024;
+
+    const threads = parseInt(core.getInput('threads'));
 
     const tmp = process.env['RUNNER_TEMP'] ?? process.env['TEMP'] ?? process.env['TMP'] ?? process.env['TMPDIR'];
 
@@ -36,33 +41,98 @@ async function run(): Promise<void> {
 
     await b2.authorize();
 
-    const stream = (await b2.downloadFileByName({ bucketName: bucket, fileName: artifactFileName, responseType: 'stream' })).data;
+    const fileInfo = ((await b2.listFileNames({ bucketId: bucket, maxFileCount: 1, startFileName: artifactFileName, prefix: '', delimiter: '' })).data as {files: {fileId: string, contentLength: number}[]}).files.pop()!;
 
-    const writer = fs.createWriteStream(artifactFile);
+    core.debug(`File info: ${JSON.stringify(fileInfo)}`);
+
+    const fileSize = fileInfo.contentLength;
+
+    const chunkCount = Math.ceil(fileSize / chunkSize);
+
+    core.info(`Downloading ${chunkCount} chunks...`);
+
+    let currentThreads = 0;
+
+    const chunksPromiser = promiser<void>();
+
+    for (let i = 0; i < chunkCount; i++) {
+
+      const startByte = i * chunkSize;
+
+      const endByte = Math.min((i + 1) * chunkSize, fileSize) - 1;
+
+      currentThreads++;
+
+      b2.downloadFileById({ fileId: fileInfo.fileId, responseType: 'stream', axiosOverride: {headers: {Range: `bytes=${startByte}-${endByte}`}} }).then(value => {
+
+        const writer = fs.createWriteStream(`${artifactFile}-${i}`);
+
+        value.data.pipe(writer, { end: false });
+
+        value.data.on('end', () => {
+
+          currentThreads--;
+
+          if (currentThreads === 0) chunksPromiser.resolve();
+
+        });
+      });
+
+      while (currentThreads >= threads) await delay(1000);
+    }
+
+    await chunksPromiser.promise;
 
     await new Promise((resolve, reject) => {
 
-      stream.pipe(writer);
+      const outputStream = fs.createWriteStream(artifactFile);
 
       let error = null as unknown;
 
-      writer.on('error', err => {
+      outputStream.on('error', err => {
 
         error = err;
 
-        writer.close();
+        outputStream.close();
 
         reject(err);
 
       });
 
-      writer.on('close', () => {
+      outputStream.on('close', () => {
 
         if (!error) {
 
           resolve(true);
         }
       });
+
+      try {
+
+        for (let i = 0; i < chunkCount; i++) {
+
+          const inputStream = fs.createReadStream(`${artifactFile}-${i}`);
+
+          inputStream.pipe(outputStream, {end: false});
+
+          inputStream.on('end', () => {
+
+            fs.rmSync(`${artifactFile}-${i}`);
+
+            if (i === chunkCount - 1) {
+
+              outputStream.end();
+            }
+          });
+        }
+      } catch (err) {
+
+            error = err;
+
+            outputStream.close();
+
+            reject(err);
+      }
     });
 
     core.info(`End of download`);
@@ -90,6 +160,8 @@ async function run(): Promise<void> {
     });
 
     core.info(`End of extraction`);
+
+    fs.rmSync(artifactFile);
 
     core.setOutput('download-path', extractionPath);
 

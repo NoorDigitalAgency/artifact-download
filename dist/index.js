@@ -1,6 +1,42 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 358:
+/***/ (function(__unused_webpack_module, exports) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.promiser = exports.delay = void 0;
+function delay(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    });
+}
+exports.delay = delay;
+function promiser() {
+    let resolve = _ => { };
+    let reject = _ => { };
+    const promise = new Promise((innerResolve, innerReject) => {
+        resolve = innerResolve;
+        reject = innerReject;
+    });
+    return { promise, resolve, reject };
+}
+exports.promiser = promiser;
+//# sourceMappingURL=functions.js.map
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -49,6 +85,7 @@ const axios_retry_1 = __importDefault(__nccwpck_require__(9179));
 const fs = __importStar(__nccwpck_require__(5747));
 const path_1 = __nccwpck_require__(5622);
 const tar_1 = __importDefault(__nccwpck_require__(4674));
+const functions_1 = __nccwpck_require__(358);
 function run() {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
@@ -58,6 +95,8 @@ function run() {
             const key = core.getInput('key');
             const id = core.getInput('id');
             const bucket = core.getInput('bucket');
+            const chunkSize = parseFloat(core.getInput('chunk-size')) * 1024 * 1024;
+            const threads = parseInt(core.getInput('threads'));
             const tmp = (_c = (_b = (_a = process.env['RUNNER_TEMP']) !== null && _a !== void 0 ? _a : process.env['TEMP']) !== null && _b !== void 0 ? _b : process.env['TMP']) !== null && _c !== void 0 ? _c : process.env['TMPDIR'];
             const runId = `${process.env['GITHUB_REPOSITORY'].replace('/', '-')}-${process.env['GITHUB_RUN_ID']}`;
             const artifactFileName = `${name}-${runId}`;
@@ -66,21 +105,60 @@ function run() {
             (0, axios_retry_1.default)(axios_1.default, { retries: 5, retryDelay: (retryCount) => retryCount * 1250, retryCondition: (error) => { var _a; return ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 503; } });
             const b2 = new backblaze_b2_1.default({ axios: axios_1.default, applicationKey: key, applicationKeyId: id });
             yield b2.authorize();
-            const stream = (yield b2.downloadFileByName({ bucketName: bucket, fileName: artifactFileName, responseType: 'stream' })).data;
-            const writer = fs.createWriteStream(artifactFile);
+            const fileInfo = (yield b2.listFileNames({ bucketId: bucket, maxFileCount: 1, startFileName: artifactFileName, prefix: '', delimiter: '' })).data.files.pop();
+            core.debug(`File info: ${JSON.stringify(fileInfo)}`);
+            const fileSize = fileInfo.contentLength;
+            const chunkCount = Math.ceil(fileSize / chunkSize);
+            core.info(`Downloading ${chunkCount} chunks...`);
+            let currentThreads = 0;
+            const chunksPromiser = (0, functions_1.promiser)();
+            for (let i = 0; i < chunkCount; i++) {
+                const startByte = i * chunkSize;
+                const endByte = Math.min((i + 1) * chunkSize, fileSize) - 1;
+                currentThreads++;
+                b2.downloadFileById({ fileId: fileInfo.fileId, responseType: 'stream', axiosOverride: { headers: { Range: `bytes=${startByte}-${endByte}` } } }).then(value => {
+                    const writer = fs.createWriteStream(`${artifactFile}-${i}`);
+                    value.data.pipe(writer, { end: false });
+                    value.data.on('end', () => {
+                        currentThreads--;
+                        if (currentThreads === 0)
+                            chunksPromiser.resolve();
+                    });
+                });
+                while (currentThreads >= threads)
+                    yield (0, functions_1.delay)(1000);
+            }
+            yield chunksPromiser.promise;
             yield new Promise((resolve, reject) => {
-                stream.pipe(writer);
+                const outputStream = fs.createWriteStream(artifactFile);
                 let error = null;
-                writer.on('error', err => {
+                outputStream.on('error', err => {
                     error = err;
-                    writer.close();
+                    outputStream.close();
                     reject(err);
                 });
-                writer.on('close', () => {
+                outputStream.on('close', () => {
                     if (!error) {
                         resolve(true);
                     }
                 });
+                try {
+                    for (let i = 0; i < chunkCount; i++) {
+                        const inputStream = fs.createReadStream(`${artifactFile}-${i}`);
+                        inputStream.pipe(outputStream, { end: false });
+                        inputStream.on('end', () => {
+                            fs.rmSync(`${artifactFile}-${i}`);
+                            if (i === chunkCount - 1) {
+                                outputStream.end();
+                            }
+                        });
+                    }
+                }
+                catch (err) {
+                    error = err;
+                    outputStream.close();
+                    reject(err);
+                }
             });
             core.info(`End of download`);
             core.info(`Start of extraction`);
@@ -97,6 +175,7 @@ function run() {
                 }));
             });
             core.info(`End of extraction`);
+            fs.rmSync(artifactFile);
             core.setOutput('download-path', extractionPath);
         }
         catch (error) {
